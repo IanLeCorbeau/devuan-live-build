@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# Exit immediately if PAM_USER isn't set.
+if [ -z "$PAM_USER" ]; then
+	printf '%s\n' "Err: PAM_USER is not set. Exiting." >&2
+	exit 1
+fi
+
+# Get UID
+UID="$(id -u "$PAM_USER" 2>/dev/null)"
+if [ -z "$UID" ]; then
+	printf '%s\n' "Err: $PAM_USER not found." >&2
+	exit 1
+fi
+
+RUNTIME_DIR="/run/user/$UID"
+
+case "$PAM_TYPE" in
+	open_session)
+		# Create dir if it doesn't exist
+		if [ -d "$RUNTIME_DIR" ]; then
+			mkdir -p "$RUNTIME_DIR"
+			chown "$UID:$UID" "$RUNTIME_DIR"
+			chmod 700 "$RUNTIME_DIR"
+		fi
+		;;
+	close_session)
+		rm -rf "$DIR"
+		;;
+esac
+exit 0
