@@ -7,20 +7,25 @@ if [ -z "$PAM_USER" ]; then
 fi
 
 # Get UID
-UID="$(id -u "$PAM_USER" 2>/dev/null)"
-if [ -z "$UID" ]; then
+_UID="$(id -u "$PAM_USER" 2>/dev/null)"
+if [ -z "$_UID" ]; then
 	printf '%s\n' "Err: $PAM_USER not found." >&2
 	exit 1
 fi
 
-RUNTIME_DIR="/run/user/$UID"
+RUNTIME_DIR="/run/user/$_UID"
+
+# Ensure RUNTIME_DIR is mounted as a tmpfs with proper permissions.
+if ! mountpoint -q "$RUNTIME_DIR"; then
+    mount -t tmpfs -o mode=0700,uid=$_UID,gid=$_UID,nosuid,nodev tmpfs "$RUNTIME_DIR"
+fi
 
 case "$PAM_TYPE" in
 	open_session)
 		# Create dir if it doesn't exist
 		if [ -d "$RUNTIME_DIR" ]; then
 			mkdir -p "$RUNTIME_DIR"
-			chown "$UID:$UID" "$RUNTIME_DIR"
+			chown "$_UID:$_UID" "$RUNTIME_DIR"
 			chmod 700 "$RUNTIME_DIR"
 		fi
 		;;
